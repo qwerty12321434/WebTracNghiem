@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reset-css/2.0.0/reset.min.css">
+    <title>Hệ Thống Thi Trắc Nghiệm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 50%;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px #aaa;
+            text-align: center;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .question-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px #ccc;
+            text-align: left;
+        }
+
+        .options-grid {
+            /*display: flex;*/
+            align-items: center;
+            gap: 5px;
+            width: 20px;
+        }
+
+        .options-grid label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="user-form">
+            <h2>Thông tin thí sinh</h2>
+            <input id="name" type="text" placeholder="Họ và tên" style="width: -webkit-fill-available;"><br>
+            <input id="dob" type="date" style="width: -webkit-fill-available;"><br>
+            <input id="studentId" type="text" placeholder="Mã sinh viên" style="width: -webkit-fill-available;"><br>
+            <input id="class" type="text" placeholder="Lớp" style="width: -webkit-fill-available;"><br>
+            <button onclick="startQuiz()">Bắt đầu thi</button>
+        </div>
+
+        <div id="quiz" class="hidden">
+            <h2>Bài thi</h2>
+            <div id="questions"></div>
+            <button onclick="submitQuiz()">Nộp bài</button>
+        </div>
+
+        <div id="result" class="hidden">
+            <h2>Kết quả</h2>
+            <p id="result-text"></p>
+        </div>
+    </div>
+
+    <script>
+        const questions = [];
+
+        for (let i = 1; i <= 10; i++) {
+            questions.push({ group: 1, text: `Câu ${i}`, type: "boolean", correct: "true" });
+        }
+        for (let i = 11; i <= 20; i++) {
+            questions.push({ group: 2, text: `Câu ${i}`, type: "single", options: ["A", "B", "C", "D"], correct: "A" });
+        }
+        for (let i = 21; i <= 30; i++) {
+            questions.push({ group: 3, text: `Câu ${i}`, type: "multiple", options: ["A", "B", "C", "D"], correct: ["A", "B"] });
+        }
+        for (let i = 31; i <= 40; i++) {
+            questions.push({ group: 4, text: `Câu ${i}`, type: "text" });
+        }
+
+        function startQuiz() {
+            const name = document.getElementById("name").value.trim();
+            const dob = document.getElementById("dob").value.trim();
+            const studentId = document.getElementById("studentId").value.trim();
+            const className = document.getElementById("class").value.trim();
+            
+            if (!name || !dob || !studentId || !className) {
+                alert("Vui lòng điền đầy đủ thông tin thí sinh trước khi bắt đầu thi!");
+                return;
+            }
+            document.getElementById("user-form").classList.add("hidden");
+            document.getElementById("quiz").classList.remove("hidden");
+
+            const questionContainer = document.getElementById("questions");
+            questionContainer.innerHTML = "";
+
+            questions.forEach((q, index) => {
+                const div = document.createElement("div");
+                div.className = "question-group";
+                div.innerHTML = `<p>${q.text}</p>`;
+
+                if (q.type === "boolean") {
+                    div.innerHTML += `<select id="q${index}"><option value="true">Đúng</option><option value="false">Sai</option></select>`;
+                } else if (q.type === "single") {
+                    div.innerHTML += `<div class='options-grid'>` + q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${opt}">${opt}</label>`).join(" ") + `</div>`;
+                } else if (q.type === "multiple") {
+                    div.innerHTML += `<div class='options-grid'>` + q.options.map(opt => `<label><input type="checkbox" name="q${index}" value="${opt}">${opt}</label>`).join(" ") + `</div>`;
+                } else if (q.type === "text") {
+                    div.innerHTML += `<textarea id="q${index}"></textarea>`;
+                }
+                questionContainer.appendChild(div);
+            });
+        }
+
+        function submitQuiz() {
+            let score = 0;
+            questions.forEach((q, index) => {
+                if (q.type === "boolean") {
+                    const answer = document.getElementById(`q${index}`).value;
+                    if (answer === q.correct) score++;
+                } else if (q.type === "single") {
+                    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                    if (selected && selected.value === q.correct) score++;
+                } else if (q.type === "multiple") {
+                    const selected = Array.from(document.querySelectorAll(`input[name="q${index}"]:checked`)).map(el => el.value);
+                    if (JSON.stringify(selected.sort()) === JSON.stringify(q.correct.sort())) score++;
+                }
+            });
+            document.getElementById("quiz").classList.add("hidden");
+            document.getElementById("result").classList.remove("hidden");
+            document.getElementById("result-text").innerText = `Bạn đã đạt ${score} điểm trên 30!`;
+        }
+    </script>
+</body>
+
+</html>
